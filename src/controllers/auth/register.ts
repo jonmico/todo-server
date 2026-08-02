@@ -5,12 +5,18 @@ import { AppError } from "../../utils/AppError";
 import bcrypt from "bcrypt";
 import { signToken } from "../../utils/signToken";
 import { cookieOptions } from "../../utils/cookieOptions";
+import { z } from "zod";
 
-interface RequestBody {
-  email: string;
-  first_name: string;
-  password: string;
-}
+const registerSchema = z.object({
+  email: z.email({ message: "Please enter a valid email." }),
+  first_name: z
+    .string()
+    .trim()
+    .min(1, { message: "Please enter a first name." }),
+  password: z
+    .string()
+    .min(4, { message: "Password must be at least 4 characters." }),
+});
 
 interface NewUserRows extends RowDataPacket {
   id: string;
@@ -18,14 +24,15 @@ interface NewUserRows extends RowDataPacket {
   first_name: string;
 }
 
-// TODO: Should we add in Zod or Joi validation?
+export async function register(req: Request, res: Response) {
+  const result = registerSchema.safeParse(req.body);
 
-export async function register(
-  req: Request<unknown, unknown, RequestBody>,
-  res: Response,
-) {
-  // TODO: Validate these fields
-  const { email, first_name, password } = req.body;
+  // TODO: I would like to return more detailed info to the client here.
+  if (!result.success) {
+    throw new AppError(400, "Invalid registration data.");
+  }
+
+  const { email, password, first_name } = result.data;
 
   const [existingUserRows] = await pool.query<RowDataPacket[]>(
     `
