@@ -27,8 +27,8 @@ interface NewUserRows extends RowDataPacket {
 export async function register(req: Request, res: Response) {
   const result = registerSchema.safeParse(req.body);
 
-  // TODO: I would like to return more detailed info to the client here.
   if (!result.success) {
+    console.error(result.error);
     throw new AppError(400, "Invalid registration data.");
   }
 
