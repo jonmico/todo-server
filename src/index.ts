@@ -4,6 +4,7 @@ import cors from "cors";
 import { errorHandler } from "./middleware/errorHandler";
 import { authRouter } from "./routes/auth";
 import cookieParser from "cookie-parser";
+import { todoRouter } from "./routes/todos";
 
 dotenv.config({ quiet: true });
 
@@ -16,6 +17,7 @@ app.use(cookieParser(COOKIE_SECRET));
 app.use(cors());
 
 app.use("/api/auth", authRouter);
+app.use("/api/todos", todoRouter);
 
 app.use(errorHandler);
 
