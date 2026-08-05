@@ -15,6 +15,10 @@ export async function authenticate(
 
   try {
     const payload = await verifyToken(jwt);
+
+    req.userId = payload.id as string;
+
+    return next();
   } catch {
     throw new AppError(401, "Not authenticated.");
   }
