@@ -13,7 +13,7 @@ create table if not exists todos (
 	title	varchar(255) not null,
 	description text,
 	completed	boolean not null default false,
-	due_date date,
+	due_date datetime,
 	created_at	timestamp not null default current_timestamp,
 	updated_at timestamp not null default current_timestamp on update current_timestamp,
 	foreign key (user_id) references users(id) on delete cascade
