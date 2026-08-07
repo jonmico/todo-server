@@ -4,7 +4,8 @@ import { AppError } from "../../utils/AppError";
 import { pool } from "../../db/connection";
 import { ResultSetHeader } from "mysql2";
 
-const createTodoSchema = z.object({
+// TODO: Consider moving shared Zod schemas to their own files.
+export const createTodoSchema = z.object({
   title: z.string().trim().min(8),
   description: z.string().optional(),
   dueDate: z.coerce.date().optional(),
