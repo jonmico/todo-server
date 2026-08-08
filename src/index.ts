@@ -1,10 +1,11 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { errorHandler } from "./middleware/errorHandler";
 import { authRouter } from "./routes/auth";
-import cookieParser from "cookie-parser";
 import { todoRouter } from "./routes/todos";
+import { tagsRouter } from "./routes/tags";
 
 dotenv.config({ quiet: true });
 
@@ -18,6 +19,7 @@ app.use(cors());
 
 app.use("/api/auth", authRouter);
 app.use("/api/todos", todoRouter);
+app.use("/api/tags", tagsRouter);
 
 app.use(errorHandler);
 
