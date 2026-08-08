@@ -9,6 +9,7 @@ export const createTodoSchema = z.object({
   title: z.string().trim().min(8),
   description: z.string().optional(),
   dueDate: z.coerce.date().optional(),
+  tagIds: z.array(z.string()).optional(),
 });
 
 export async function createTodo(req: Request, res: Response) {

@@ -4,6 +4,7 @@ import z from "zod";
 import { pool } from "../../db/connection";
 import { ResultSetHeader } from "mysql2";
 import { AppError } from "../../utils/AppError";
+import { verifySyncTodoTags } from "../../utils/verifySyncTodoTags";
 
 const updateTodoSchema = createTodoSchema.partial().extend({
   completed: z.boolean().optional(),
@@ -24,32 +25,51 @@ export async function updateTodo(req: Request, res: Response) {
   const fields: string[] = [];
   const values: unknown[] = [];
 
-  for (const [key, value] of Object.entries(result.data)) {
-    if (value !== undefined) {
-      const column = columnMap[key] ?? key;
-      fields.push(`${column} = ?`);
-      values.push(value);
+  const { tagIds, ...todoFields } = result.data;
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    for (const [key, value] of Object.entries(todoFields)) {
+      if (value !== undefined) {
+        const column = columnMap[key] ?? key;
+        fields.push(`${column} = ?`);
+        values.push(value);
+      }
     }
-  }
 
-  if (fields.length === 0) {
-    throw new AppError(400, "Provide at least one field to update.");
-  }
+    if (fields.length === 0 && tagIds === undefined) {
+      throw new AppError(400, "Provide at least one field to update.");
+    }
 
-  const setClause = fields.join(", ");
+    const setClause = fields.join(", ");
 
-  const [sqlResult] = await pool.query<ResultSetHeader>(
-    `
+    const [sqlResult] = await connection.query<ResultSetHeader>(
+      `
       UPDATE todos
       SET ${setClause}
       WHERE id = ? AND user_id = ?
     `,
-    [...values, id, req.userId],
-  );
+      [...values, id, req.userId],
+    );
 
-  if (sqlResult.affectedRows === 0) {
-    throw new AppError(404, "Todo could not be found.");
+    if (sqlResult.affectedRows === 0) {
+      throw new AppError(404, "Todo could not be found.");
+    }
+
+    if (tagIds !== undefined) {
+      await verifySyncTodoTags(connection, id, tagIds, req.userId);
+    }
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
   }
 
-  res.json({ message: "You are in the updateTodo controller." });
+  res.json({ message: "Todo updated." });
 }
