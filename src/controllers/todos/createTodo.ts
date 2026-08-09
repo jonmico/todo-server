@@ -3,6 +3,8 @@ import { z } from "zod";
 import { AppError } from "../../utils/AppError";
 import { pool } from "../../db/connection";
 import { ResultSetHeader } from "mysql2";
+import { verifySyncTodoTags } from "../../utils/verifySyncTodoTags";
+import { randomUUID } from "crypto";
 
 // TODO: Consider moving shared Zod schemas to their own files.
 export const createTodoSchema = z.object({
@@ -20,21 +22,43 @@ export async function createTodo(req: Request, res: Response) {
     throw new AppError(400, "Invalid todo data.");
   }
 
-  const [todoResult] = await pool.query<ResultSetHeader>(
-    `
-			insert into todos (title, description, due_date, user_id)
-			values (?,?,?,?)
-		`,
-    [
-      result.data.title,
-      result.data.description,
-      result.data.dueDate,
-      req.userId,
-    ],
-  );
+  const { tagIds, ...todoFields } = result.data;
 
-  if (todoResult.affectedRows === 0) {
-    throw new AppError(500, "Something went wrong.");
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const uuid = randomUUID();
+
+    const [todoResult] = await connection.query<ResultSetHeader>(
+      `
+			insert into todos (id, title, description, due_date, user_id)
+			values (?,?,?,?,?)
+		`,
+      [
+        uuid,
+        todoFields.title,
+        todoFields.description,
+        todoFields.dueDate,
+        req.userId,
+      ],
+    );
+
+    if (todoResult.affectedRows === 0) {
+      throw new AppError(500, "Something went wrong.");
+    }
+
+    if (tagIds !== undefined) {
+      await verifySyncTodoTags(connection, uuid, tagIds, req.userId);
+    }
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
   }
 
   res.status(201).json({ message: "Todo created." });
