@@ -9,7 +9,7 @@ import { z } from "zod";
 
 const registerSchema = z.object({
   email: z.email({ message: "Please enter a valid email." }),
-  first_name: z
+  firstName: z
     .string()
     .trim()
     .min(1, { message: "Please enter a first name." }),
@@ -32,7 +32,7 @@ export async function register(req: Request, res: Response) {
     throw new AppError(400, "Invalid registration data.");
   }
 
-  const { email, password, first_name } = result.data;
+  const { email, password, firstName } = result.data;
 
   const [existingUserRows] = await pool.query<RowDataPacket[]>(
     `
@@ -54,7 +54,7 @@ export async function register(req: Request, res: Response) {
 			insert into users (email, first_name, hashed_password)
 			values (?,?,?)
 			`,
-    [email, first_name, passwordHash],
+    [email, firstName, passwordHash],
   );
 
   const [newUserRows] = await pool.query<NewUserRows[]>(
