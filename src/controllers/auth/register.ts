@@ -15,6 +15,7 @@ const registerSchema = z.object({
     .min(1, { message: "Please enter a first name." }),
   password: z
     .string()
+    .trim()
     .min(4, { message: "Password must be at least 4 characters." }),
 });
 
